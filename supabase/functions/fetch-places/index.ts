@@ -145,8 +145,27 @@ serve(async (req) => {
         if (!place.rating || place.rating < 3.5) return false;
         if (!place.userRatingCount || place.userRatingCount < 10) return false;
         
-        // For cafes, prefer places that aren't primarily takeout
-        if (place.types?.includes('cafe') || place.types?.includes('coffee_shop')) {
+        const types = place.types || [];
+        const name = (place.displayName?.text || '').toLowerCase();
+        
+        // For cafes, be strict about workspace suitability
+        if (types.includes('cafe') || types.includes('coffee_shop')) {
+          // Exclude if it's also a full restaurant/diner/fast food
+          if (types.includes('restaurant') || 
+              types.includes('diner') || 
+              types.includes('fast_food_restaurant') ||
+              types.includes('hamburger_restaurant') ||
+              types.includes('sandwich_shop') ||
+              types.includes('bagel_shop')) {
+            return false;
+          }
+          
+          // Exclude places with names that suggest they're not work-friendly
+          const excludeKeywords = ['diner', 'restaurant', 'bagel', 'pizza', 'burger', 'grill', 'bistro', 'eatery'];
+          if (excludeKeywords.some(keyword => name.includes(keyword))) {
+            return false;
+          }
+          
           // If it's a cafe and ONLY does takeout, skip it
           if (place.takeout === true && place.dineIn === false) return false;
         }
