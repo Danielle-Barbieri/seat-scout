@@ -220,12 +220,11 @@ const Index = () => {
         />
       </div>
 
-      {/* Recenter button */}
+      {/* Recenter button - positioned on left to avoid map controls */}
       <Button
         onClick={handleRecenter}
         size="icon"
-        className="absolute top-24 right-4 z-[1000] shadow-lg"
-        style={{ bottom: `calc(${panelHeight}vh + 1rem)` }}
+        className="absolute top-24 left-4 z-[1000] shadow-lg"
       >
         <MapPin className="w-4 h-4" />
       </Button>
