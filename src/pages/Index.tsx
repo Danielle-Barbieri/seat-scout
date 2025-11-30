@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Map from '@/components/Map';
 import LocationCard from '@/components/LocationCard';
+import LocationDetails from '@/components/LocationDetails';
 import SearchBox from '@/components/SearchBox';
 import { Button } from '@/components/ui/button';
 import { Location, LocationType } from '@/types/location';
@@ -196,7 +197,7 @@ const Index = () => {
           {selectedLocation ? (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-foreground">Selected Workspace</h2>
+                <h2 className="text-lg font-semibold text-foreground">Workspace Details</h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -206,10 +207,7 @@ const Index = () => {
                   View All
                 </Button>
               </div>
-              <LocationCard
-                location={selectedLocation}
-                onClick={() => setUserLocation([selectedLocation.lat, selectedLocation.lng])}
-              />
+              <LocationDetails location={selectedLocation} />
             </div>
           ) : (
             <>

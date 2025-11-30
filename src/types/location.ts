@@ -2,6 +2,13 @@ export type LocationType = 'cafe' | 'library';
 
 export type BusinessLevel = 'low' | 'moderate' | 'high';
 
+export interface OpeningHours {
+  openNow: boolean;
+  weekdayDescriptions?: string[];
+  nextCloseTime?: string;
+  nextOpenTime?: string;
+}
+
 export interface Location {
   id: string;
   name: string;
@@ -17,4 +24,5 @@ export interface Location {
   walkingTime?: number; // in minutes
   rating?: number;
   userRatingsTotal?: number;
+  openingHours?: OpeningHours;
 }
