@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Map from '@/components/Map';
 import LocationCard from '@/components/LocationCard';
+import SearchBox from '@/components/SearchBox';
 import { Button } from '@/components/ui/button';
 import { Location, LocationType } from '@/types/location';
 import { MapPin, Coffee, BookOpen, Loader2 } from 'lucide-react';
@@ -96,6 +97,17 @@ const Index = () => {
     }
   };
 
+  const handleSearchLocationSelect = (lat: number, lng: number, address: string) => {
+    setUserLocation([lat, lng]);
+    fetchNearbyPlaces(lat, lng, filter);
+  };
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setUserLocation([lat, lng]);
+    fetchNearbyPlaces(lat, lng, filter);
+    toast.success('Location updated');
+  };
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
       {/* Header */}
@@ -140,6 +152,7 @@ const Index = () => {
             </div>
           </div>
 
+          <SearchBox onLocationSelect={handleSearchLocationSelect} />
         </div>
       </div>
 
@@ -149,6 +162,7 @@ const Index = () => {
           locations={filteredLocations}
           center={userLocation}
           onLocationClick={handleLocationClick}
+          onMapClick={handleMapClick}
           apiKey={mapboxToken}
         />
       </div>

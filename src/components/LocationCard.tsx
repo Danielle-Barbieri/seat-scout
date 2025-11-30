@@ -106,7 +106,7 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
             {location.likelihood}%
           </div>
           <div className="text-xs text-muted-foreground text-right">
-            Seat Available
+            Predicted Availability
           </div>
         </div>
       </div>
