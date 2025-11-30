@@ -13,10 +13,11 @@ const Index = () => {
   const [userLocation, setUserLocation] = useState<[number, number]>([37.7749, -122.4194]); // SF default
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [filter, setFilter] = useState<LocationType | 'all'>('all');
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [mapboxToken] = useState('pk.eyJ1IjoiZGFuaWVsbGVseW5iYXJiaWVyaSIsImEiOiJjbWltYTh0NzUxYWNkM2ZxMzhlMHA0bnBhIn0.MOCVTwVpuj1oxsv6_xJOSA');
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(40); // percentage of screen
+  const [isDragging, setIsDragging] = useState(false);
 
   const fetchNearbyPlaces = async (lat: number, lng: number, locationType?: LocationType | 'all') => {
     setLoading(true);
@@ -45,7 +46,6 @@ const Index = () => {
       }
 
       setLocations(data.locations || []);
-      setDrawerOpen(true);
     } catch (error) {
       console.error('Error fetching places:', error);
       toast.error('Failed to fetch nearby places');
@@ -84,7 +84,6 @@ const Index = () => {
 
   const handleLocationClick = (location: Location) => {
     setSelectedLocation(location);
-    setDrawerOpen(true);
   };
 
   const handleRecenter = () => {
@@ -108,6 +107,44 @@ const Index = () => {
     fetchNearbyPlaces(lat, lng, filter);
     toast.success('Location updated');
   };
+
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  const handleDragMove = (e: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
+    
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const windowHeight = window.innerHeight;
+    const headerHeight = 72;
+    const newHeight = ((windowHeight - clientY) / (windowHeight - headerHeight)) * 100;
+    
+    // Constrain between 20% and 80%
+    const constrainedHeight = Math.min(Math.max(newHeight, 20), 80);
+    setPanelHeight(constrainedHeight);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove);
+      window.addEventListener('mouseup', handleDragEnd);
+      window.addEventListener('touchmove', handleDragMove);
+      window.addEventListener('touchend', handleDragEnd);
+      
+      return () => {
+        window.removeEventListener('mousemove', handleDragMove);
+        window.removeEventListener('mouseup', handleDragEnd);
+        window.removeEventListener('touchmove', handleDragMove);
+        window.removeEventListener('touchend', handleDragEnd);
+      };
+    }
+  }, [isDragging]);
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
@@ -157,8 +194,11 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Map */}
-      <div className="absolute inset-0 pt-[72px]">
+      {/* Map - adjusts height based on panel */}
+      <div 
+        className="absolute inset-0 pt-[72px]"
+        style={{ bottom: `${panelHeight}vh` }}
+      >
         <Map
           locations={filteredLocations}
           center={userLocation}
@@ -173,27 +213,27 @@ const Index = () => {
         onClick={handleRecenter}
         size="icon"
         className="absolute top-24 right-4 z-[1000] shadow-lg"
+        style={{ bottom: `calc(${panelHeight}vh + 1rem)` }}
       >
         <MapPin className="w-4 h-4" />
       </Button>
 
-      {/* Bottom drawer */}
+      {/* Resizable panel */}
       <div
-        className={cn(
-          'absolute bottom-0 left-0 right-0 z-[1000] bg-background rounded-t-3xl shadow-2xl transition-transform duration-300 ease-in-out',
-          drawerOpen ? 'translate-y-0' : 'translate-y-[calc(100%-140px)]'
-        )}
+        className="absolute bottom-0 left-0 right-0 z-[1000] bg-background rounded-t-3xl shadow-2xl flex flex-col"
+        style={{ height: `${panelHeight}vh` }}
       >
-        {/* Drawer handle */}
-        <button
-          onClick={() => setDrawerOpen(!drawerOpen)}
-          className="w-full py-3 flex justify-center"
+        {/* Drag handle */}
+        <div
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+          className="w-full py-3 flex justify-center cursor-row-resize hover:bg-muted/50 active:bg-muted transition-colors"
         >
-          <div className="w-12 h-1.5 bg-muted rounded-full" />
-        </button>
+          <div className="w-12 h-1.5 bg-muted-foreground/50 rounded-full" />
+        </div>
 
         {/* Drawer content */}
-        <div className="px-4 pb-6 max-h-[60vh] overflow-y-auto">
+        <div className="px-4 pb-6 overflow-y-auto flex-1">
           {selectedLocation ? (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-3">
