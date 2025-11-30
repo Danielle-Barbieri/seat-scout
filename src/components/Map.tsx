@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -47,29 +47,36 @@ interface MapProps {
   onLocationClick: (location: Location) => void;
 }
 
-const MapController = ({ center }: { center: [number, number] }) => {
+const MapUpdater = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   
   useEffect(() => {
-    map.setView(center, 13);
+    map.setView(center, 13, { animate: true });
   }, [center, map]);
   
   return null;
 };
 
 const Map = ({ locations, center, onLocationClick }: MapProps) => {
+  const [key, setKey] = React.useState(0);
+
+  useEffect(() => {
+    setKey(prev => prev + 1);
+  }, [center]);
+
   return (
     <MapContainer
+      key={key}
       center={center}
       zoom={13}
       className="h-full w-full"
       zoomControl={false}
     >
-      <MapController center={center} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <MapUpdater center={center} />
       {locations.map((location) => (
         <Marker
           key={location.id}
