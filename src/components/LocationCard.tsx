@@ -50,6 +50,23 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
     return `${(meters / 1000).toFixed(1)}km`;
   };
 
+  const getTodayClosingTime = () => {
+    const descriptions = location.openingHours?.weekdayDescriptions;
+    if (!descriptions || !location.openingHours?.openNow) return undefined;
+
+    const today = new Date();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const todayName = dayNames[today.getDay()];
+
+    const todayHours = descriptions.find((desc) => desc.startsWith(todayName));
+    if (!todayHours || todayHours.includes('Closed')) return undefined;
+
+    const match = todayHours.match(/–\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/);
+    return match ? match[1] : undefined;
+  };
+
+  const openUntil = getTodayClosingTime();
+
   return (
     <Card
       className="p-4 cursor-pointer hover:shadow-md transition-all border-l-4 hover:scale-[1.02]"
@@ -81,10 +98,10 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
                 WiFi
               </Badge>
             )}
-            {location.openUntil && (
+            {openUntil && (
               <Badge variant="outline" className="text-xs">
                 <Clock className="w-3 h-3 mr-1" />
-                {location.openUntil}
+                Open until {openUntil}
               </Badge>
             )}
           </div>
