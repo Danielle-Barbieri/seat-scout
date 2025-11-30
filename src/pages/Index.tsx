@@ -12,6 +12,7 @@ const Index = () => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [filter, setFilter] = useState<LocationType | 'all'>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mapboxToken, setMapboxToken] = useState('');
 
   useEffect(() => {
     // Get user's location
@@ -49,7 +50,7 @@ const Index = () => {
     <div className="relative h-screen w-full overflow-hidden bg-background">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-[1000] bg-background/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="max-w-7xl mx-auto px-4 py-3 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
@@ -88,12 +89,31 @@ const Index = () => {
               </Button>
             </div>
           </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <p className="text-xs text-muted-foreground flex-1">
+              Prototype map powered by Mapbox. Paste your <span className="font-medium">public token</span> to see
+              live tiles.
+            </p>
+            <input
+              type="text"
+              placeholder="Mapbox public token (pk_...)"
+              value={mapboxToken}
+              onChange={(e) => setMapboxToken(e.target.value)}
+              className="w-full sm:w-80 rounded-md border bg-background px-3 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
         </div>
       </div>
 
       {/* Map */}
-      <div className="absolute inset-0 pt-[73px]">
-        <Map locations={filteredLocations} center={userLocation} onLocationClick={handleLocationClick} />
+      <div className="absolute inset-0 pt-[110px]">
+        <Map
+          locations={filteredLocations}
+          center={userLocation}
+          onLocationClick={handleLocationClick}
+          apiKey={mapboxToken}
+        />
       </div>
 
       {/* Recenter button */}
