@@ -104,7 +104,6 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
           
           <div className="flex flex-wrap gap-2 items-center mb-2">
             <Badge variant="outline" className={cn('font-medium', getBusinessColor(location.busyness))}>
-              {location.isLiveData && <span className="mr-1">🔴</span>}
               {getBusinessText(location.busyness)}
             </Badge>
             {location.hasWifi && (
