@@ -18,6 +18,7 @@ export interface Location {
   lng: number;
   busyness: BusinessLevel;
   likelihood: number; // 0-100
+  isLiveData?: boolean; // Whether busyness data is real-time from Google
   openUntil?: string;
   hasWifi: boolean;
   distance?: number; // in meters
