@@ -261,7 +261,6 @@ const Index = () => {
                         location={location}
                         onClick={() => {
                           setSelectedLocation(location);
-                          setUserLocation([location.lat, location.lng]);
                         }}
                       />
                     ))}
