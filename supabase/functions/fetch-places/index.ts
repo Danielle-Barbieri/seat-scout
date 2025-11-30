@@ -171,11 +171,25 @@ serve(async (req) => {
       
       const locationType = determineLocationType(place.types || []);
       
-      // Extract closing time from opening hours
+      // Extract today's closing time from weekday descriptions
       let openUntil = undefined;
-      if (place.currentOpeningHours?.openNow && place.currentOpeningHours?.nextCloseTime) {
-        const closeTime = new Date(place.currentOpeningHours.nextCloseTime);
-        openUntil = closeTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      if (place.currentOpeningHours?.openNow && place.currentOpeningHours?.weekdayDescriptions) {
+        const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const todayName = dayNames[today];
+        
+        // Find today's hours in the weekday descriptions
+        const todayHours = place.currentOpeningHours.weekdayDescriptions.find((desc: string) => 
+          desc.startsWith(todayName)
+        );
+        
+        if (todayHours && !todayHours.includes('Closed')) {
+          // Extract closing time from format like "Monday: 8:00 AM – 10:00 PM"
+          const match = todayHours.match(/–\s*(\d{1,2}:\d{2}\s*(?:AM|PM))/);
+          if (match) {
+            openUntil = match[1];
+          }
+        }
       }
       
       return {
