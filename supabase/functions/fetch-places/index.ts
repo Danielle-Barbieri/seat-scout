@@ -5,29 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface PlaceResult {
-  place_id: string;
-  name: string;
-  vicinity: string;
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-  types: string[];
-  rating?: number;
-  user_ratings_total?: number;
-  opening_hours?: {
-    open_now?: boolean;
-  };
-  business_status?: string;
-}
-
-interface PopularTimesData {
-  current_popularity?: number;
-  time_spent?: number[];
-}
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371e3; // Earth's radius in meters
@@ -97,58 +74,81 @@ serve(async (req) => {
 
     console.log(`Fetching places for lat: ${lat}, lng: ${lng}, type: ${type}`);
 
-    // Determine search query based on type
-    let searchQuery = type === 'library' 
-      ? 'library' 
-      : 'cafe OR coffee shop';
-
-    // Use Nearby Search API
-    const radius = 2000; // 2km radius
-    const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=${type === 'library' ? 'library' : 'cafe'}&keyword=${searchQuery}&key=${apiKey}`;
+    // Use new Places API (New) with searchNearby
+    const includedTypes = type === 'library' ? ['library'] : ['cafe', 'coffee_shop'];
     
-    const placesResponse = await fetch(placesUrl);
+    const placesUrl = 'https://places.googleapis.com/v1/places:searchNearby';
+    
+    const placesResponse = await fetch(placesUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.currentOpeningHours,places.businessStatus'
+      },
+      body: JSON.stringify({
+        includedTypes: includedTypes,
+        maxResultCount: 20,
+        locationRestriction: {
+          circle: {
+            center: {
+              latitude: lat,
+              longitude: lng
+            },
+            radius: 2000.0 // 2km radius
+          }
+        }
+      })
+    });
+
     const placesData = await placesResponse.json();
 
-    console.log(`Places API response status: ${placesData.status}`);
+    console.log(`Places API response:`, JSON.stringify(placesData).substring(0, 200));
 
-    if (placesData.status !== 'OK' && placesData.status !== 'ZERO_RESULTS') {
+    if (!placesResponse.ok) {
       console.error('Places API error:', placesData);
-      throw new Error(`Google Places API error: ${placesData.status}`);
+      throw new Error(`Google Places API error: ${placesResponse.status}`);
     }
 
-    const results = placesData.results || [];
+    const results = placesData.places || [];
     console.log(`Found ${results.length} places`);
 
     // Transform results to our Location format
-    const locations = results.slice(0, 20).map((place: PlaceResult) => {
-      const distance = calculateDistance(lat, lng, place.geometry.location.lat, place.geometry.location.lng);
+    const locations = results.map((place: any) => {
+      const placeLat = place.location?.latitude;
+      const placeLng = place.location?.longitude;
+      
+      if (!placeLat || !placeLng) {
+        return null;
+      }
+      
+      const distance = calculateDistance(lat, lng, placeLat, placeLng);
       const walkingTime = calculateWalkingTime(distance);
       
-      // Try to get current popularity (this is limited in the basic API)
-      // In production, you might want to use the Places Details API for more accurate data
-      const currentPopularity = Math.floor(Math.random() * 100); // Simulated for now
+      // Simulate busyness data (Google's Popular Times requires special access)
+      const currentPopularity = Math.floor(Math.random() * 100);
       const busyness = getBusynessFromPopularity(currentPopularity);
       const likelihood = getLikelihoodFromBusyness(busyness);
       
-      const locationType = determineLocationType(place.types);
+      const locationType = determineLocationType(place.types || []);
       
       return {
-        id: place.place_id,
-        name: place.name,
+        id: place.id,
+        name: place.displayName?.text || 'Unknown',
         type: locationType,
-        address: place.vicinity,
-        lat: place.geometry.location.lat,
-        lng: place.geometry.location.lng,
+        address: place.formattedAddress || '',
+        lat: placeLat,
+        lng: placeLng,
         busyness,
         likelihood,
-        openUntil: place.opening_hours?.open_now ? '9:00 PM' : undefined,
+        openUntil: place.currentOpeningHours?.openNow ? '9:00 PM' : undefined,
         hasWifi: locationType === 'cafe', // Assume cafes have wifi
         distance: Math.round(distance),
         walkingTime,
         rating: place.rating,
-        userRatingsTotal: place.user_ratings_total,
+        userRatingsTotal: place.userRatingCount,
       };
-    });
+    }).filter(Boolean);
 
     console.log(`Returning ${locations.length} processed locations`);
 
