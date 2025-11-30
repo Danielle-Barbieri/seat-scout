@@ -84,7 +84,7 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.currentOpeningHours,places.businessStatus,places.dineIn,places.takeout,places.priceLevel'
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.currentOpeningHours,places.businessStatus,places.dineIn,places.takeout,places.priceLevel,places.currentPopularity'
       },
       body: JSON.stringify({
         includedTypes: includedTypes,
@@ -183,8 +183,11 @@ serve(async (req) => {
       const distance = calculateDistance(lat, lng, placeLat, placeLng);
       const walkingTime = calculateWalkingTime(distance);
       
-      // Simulate busyness data (Google's Popular Times requires special access)
-      const currentPopularity = Math.floor(Math.random() * 100);
+      // Use Google's live busyness data if available, otherwise estimate
+      const hasLiveData = typeof place.currentPopularity === 'number';
+      const currentPopularity = hasLiveData 
+        ? place.currentPopularity 
+        : Math.floor(Math.random() * 100);
       const busyness = getBusynessFromPopularity(currentPopularity);
       const likelihood = getLikelihoodFromBusyness(busyness);
       
@@ -199,6 +202,7 @@ serve(async (req) => {
         lng: placeLng,
         busyness,
         likelihood,
+        isLiveData: hasLiveData,
         // Let the frontend derive "open until" from openingHours strings to avoid timezone issues
         hasWifi: locationType === 'cafe', // Assume cafes have wifi
         distance: Math.round(distance),
