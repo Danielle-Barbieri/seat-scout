@@ -18,6 +18,7 @@ export interface Location {
   lng: number;
   busyness: BusinessLevel;
   likelihood: number; // 0-100
+  isLiveData?: boolean; // Simulated real-time indicator
   openUntil?: string;
   hasWifi: boolean;
   distance?: number; // in meters
