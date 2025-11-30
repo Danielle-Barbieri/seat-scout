@@ -139,8 +139,14 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
 
           <div className="flex flex-wrap gap-2 mb-3">
             <Badge variant="outline" className={cn('font-medium', getBusinessColor(location.busyness))}>
+              {location.isLiveData && <span className="mr-1.5 text-xs">🔴</span>}
               {getBusinessText(location.busyness)} Now
             </Badge>
+            {location.isLiveData && (
+              <Badge variant="secondary" className="text-xs">
+                Live Data
+              </Badge>
+            )}
             {location.hasWifi && (
               <Badge variant="outline" className="text-xs">
                 <Wifi className="w-3 h-3 mr-1" />

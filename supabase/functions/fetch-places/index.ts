@@ -183,8 +183,19 @@ serve(async (req) => {
       const distance = calculateDistance(lat, lng, placeLat, placeLng);
       const walkingTime = calculateWalkingTime(distance);
       
-      // Estimate busyness based on factors (Google doesn't expose real-time busyness publicly)
-      const currentPopularity = Math.floor(Math.random() * 100);
+      // Simulate real-time data (70% of places have "live" data for demo)
+      const hasLiveData = Math.random() < 0.7;
+      
+      // Simulate busyness that varies by time of day and ratings
+      const hour = new Date().getHours();
+      const isPeakHour = (hour >= 8 && hour <= 10) || (hour >= 12 && hour <= 14) || (hour >= 17 && hour <= 19);
+      const ratingBoost = (place.rating || 0) > 4.3 ? 20 : 0; // Popular places are busier
+      
+      let basePopularity = Math.floor(Math.random() * 60) + 20; // 20-80 base
+      if (isPeakHour) basePopularity = Math.min(100, basePopularity + 30);
+      basePopularity = Math.min(100, basePopularity + ratingBoost);
+      
+      const currentPopularity = basePopularity;
       const busyness = getBusynessFromPopularity(currentPopularity);
       const likelihood = getLikelihoodFromBusyness(busyness);
       
@@ -199,6 +210,7 @@ serve(async (req) => {
         lng: placeLng,
         busyness,
         likelihood,
+        isLiveData: hasLiveData,
         // Let the frontend derive "open until" from openingHours strings to avoid timezone issues
         hasWifi: locationType === 'cafe', // Assume cafes have wifi
         distance: Math.round(distance),
