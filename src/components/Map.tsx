@@ -7,6 +7,7 @@ interface MapProps {
   locations: Location[];
   center: [number, number];
   onLocationClick: (location: Location) => void;
+  onMapClick?: (lat: number, lng: number) => void;
   apiKey?: string;
 }
 
@@ -23,7 +24,7 @@ const getBusynessColor = (busyness: string) => {
   }
 };
 
-const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, apiKey }) => {
+const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClick, apiKey }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -46,6 +47,14 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, apiKey })
         new mapboxgl.NavigationControl({ visualizePitch: true }),
         'top-right',
       );
+
+      // Add click handler for map
+      if (onMapClick) {
+        mapRef.current.on('click', (e) => {
+          const { lat, lng } = e.lngLat;
+          onMapClick(lat, lng);
+        });
+      }
     } else {
       mapRef.current.easeTo({ center: [center[1], center[0]], zoom: 12, duration: 800 });
     }
