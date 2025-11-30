@@ -135,7 +135,7 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
 
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
           <div className={cn(
-            'px-3 py-2 rounded-lg text-center',
+            'px-3 py-2 rounded-lg text-center min-w-[140px]',
             location.likelihood >= 70 
               ? 'bg-success/10 border border-success/20' 
               : location.likelihood >= 40 
