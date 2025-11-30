@@ -84,11 +84,12 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.currentOpeningHours,places.businessStatus'
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.userRatingCount,places.currentOpeningHours,places.businessStatus,places.dineIn,places.takeout,places.priceLevel'
       },
       body: JSON.stringify({
         includedTypes: includedTypes,
         maxResultCount: 20,
+        rankPreference: 'POPULARITY', // Prioritize popular places
         locationRestriction: {
           circle: {
             center: {
@@ -130,7 +131,26 @@ serve(async (req) => {
     console.log(`Found ${results.length} places`);
 
     // Transform results to our Location format
-    const locations = results.map((place: any) => {
+    const locations = results
+      .filter((place: any) => {
+        // Filter criteria to ensure workspace-friendly venues
+        
+        // Must have dine-in capability (filters out takeout-only)
+        if (place.dineIn === false) return false;
+        
+        // Must have at least some ratings (indicates established venue)
+        if (!place.rating || place.rating < 3.5) return false;
+        if (!place.userRatingCount || place.userRatingCount < 10) return false;
+        
+        // For cafes, prefer places that aren't primarily takeout
+        if (place.types?.includes('cafe') || place.types?.includes('coffee_shop')) {
+          // If it's a cafe and ONLY does takeout, skip it
+          if (place.takeout === true && place.dineIn === false) return false;
+        }
+        
+        return true;
+      })
+      .map((place: any) => {
       const placeLat = place.location?.latitude;
       const placeLng = place.location?.longitude;
       
@@ -163,6 +183,8 @@ serve(async (req) => {
         walkingTime,
         rating: place.rating,
         userRatingsTotal: place.userRatingCount,
+        hasDineIn: place.dineIn !== false, // Track if place has seating
+        priceLevel: place.priceLevel,
       };
     }).filter(Boolean);
 
