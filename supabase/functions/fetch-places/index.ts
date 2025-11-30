@@ -135,6 +135,9 @@ serve(async (req) => {
       .filter((place: any) => {
         // Filter criteria to ensure workspace-friendly venues
         
+        // Must be currently open
+        if (!place.currentOpeningHours?.openNow) return false;
+        
         // Must have dine-in capability (filters out takeout-only)
         if (place.dineIn === false) return false;
         

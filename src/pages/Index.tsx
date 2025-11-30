@@ -193,36 +193,58 @@ const Index = () => {
 
         {/* Drawer content */}
         <div className="px-4 pb-6 max-h-[60vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
-              {loading ? 'Loading...' : `${filteredLocations.length} Workspaces Nearby`}
-            </h2>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          {selectedLocation ? (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-foreground">Selected Workspace</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedLocation(null)}
+                  className="text-muted-foreground"
+                >
+                  View All
+                </Button>
+              </div>
+              <LocationCard
+                location={selectedLocation}
+                onClick={() => setUserLocation([selectedLocation.lat, selectedLocation.lng])}
+              />
             </div>
           ) : (
             <>
-              <div className="space-y-3">
-                {filteredLocations.map((location) => (
-                  <LocationCard
-                    key={location.id}
-                    location={location}
-                    onClick={() => {
-                      setSelectedLocation(location);
-                      setUserLocation([location.lat, location.lng]);
-                    }}
-                  />
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {loading ? 'Loading...' : `${filteredLocations.length} Workspaces Nearby`}
+                </h2>
               </div>
 
-              {filteredLocations.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No {filter === 'all' ? 'workspaces' : filter === 'cafe' ? 'cafes' : 'libraries'} found
-                  nearby
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {filteredLocations.map((location) => (
+                      <LocationCard
+                        key={location.id}
+                        location={location}
+                        onClick={() => {
+                          setSelectedLocation(location);
+                          setUserLocation([location.lat, location.lng]);
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {filteredLocations.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No {filter === 'all' ? 'workspaces' : filter === 'cafe' ? 'cafes' : 'libraries'} found
+                      nearby
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
