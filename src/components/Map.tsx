@@ -68,6 +68,23 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
+    // Add user location marker (different style to avoid overlap)
+    const userEl = document.createElement('div');
+    userEl.style.width = '20px';
+    userEl.style.height = '20px';
+    userEl.style.borderRadius = '9999px';
+    userEl.style.backgroundColor = '#3b82f6';
+    userEl.style.border = '3px solid white';
+    userEl.style.boxShadow = '0 4px 10px rgba(59, 130, 246, 0.5)';
+    userEl.style.zIndex = '10';
+    
+    const userMarker = new mapboxgl.Marker(userEl)
+      .setLngLat([center[1], center[0]])
+      .addTo(mapRef.current!);
+    
+    markersRef.current.push(userMarker);
+
+    // Add location markers
     locations.forEach((location) => {
       const el = document.createElement('div');
       const color = getBusynessColor(location.busyness);
@@ -101,7 +118,7 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
 
       markersRef.current.push(marker);
     });
-  }, [locations, onLocationClick, apiKey]);
+  }, [locations, center, onLocationClick, apiKey]);
 
   // Cleanup on unmount
   useEffect(() => {
