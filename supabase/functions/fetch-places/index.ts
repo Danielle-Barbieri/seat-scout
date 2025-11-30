@@ -103,11 +103,27 @@ serve(async (req) => {
 
     const placesData = await placesResponse.json();
 
-    console.log(`Places API response:`, JSON.stringify(placesData).substring(0, 200));
+    console.log(`Places API response status: ${placesResponse.status}`);
+    console.log(`Places API response:`, JSON.stringify(placesData));
 
     if (!placesResponse.ok) {
-      console.error('Places API error:', placesData);
-      throw new Error(`Google Places API error: ${placesResponse.status}`);
+      console.error('Places API error details:', {
+        status: placesResponse.status,
+        statusText: placesResponse.statusText,
+        data: placesData
+      });
+      
+      let errorMessage = `Google Places API error: ${placesResponse.status}`;
+      
+      if (placesResponse.status === 403) {
+        errorMessage = 'Google Places API (New) access denied. Please ensure:\n' +
+          '1. Places API (New) is enabled in Google Cloud Console\n' +
+          '2. Billing is set up for your project\n' +
+          '3. Your API key has no restrictions preventing server-side calls\n' +
+          '4. The API key has Places API (New) enabled';
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const results = placesData.places || [];
