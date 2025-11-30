@@ -13,4 +13,8 @@ export interface Location {
   likelihood: number; // 0-100
   openUntil?: string;
   hasWifi: boolean;
+  distance?: number; // in meters
+  walkingTime?: number; // in minutes
+  rating?: number;
+  userRatingsTotal?: number;
 }
