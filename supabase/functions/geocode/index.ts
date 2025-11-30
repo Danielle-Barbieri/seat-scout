@@ -35,20 +35,34 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Geocoding address: ${address}`);
+    console.log(`Searching for address: ${address}`);
 
-    // Use Google Geocoding API
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    // Use Google Places API (New) Text Search instead of Geocoding API
+    const placesUrl = 'https://places.googleapis.com/v1/places:searchText';
     
-    const response = await fetch(geocodeUrl);
+    const response = await fetch(placesUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location'
+      },
+      body: JSON.stringify({
+        textQuery: address,
+        maxResultCount: 1
+      })
+    });
+
     const data = await response.json();
 
-    if (!response.ok || data.status !== 'OK') {
-      console.error('Geocoding API error:', data);
+    console.log(`Places API response status: ${response.status}`);
+
+    if (!response.ok) {
+      console.error('Places API error:', data);
       return new Response(
         JSON.stringify({ 
-          error: `Geocoding failed: ${data.status}`,
-          details: data.error_message || 'Unknown error'
+          error: `Location search failed: ${response.status}`,
+          details: data.error?.message || 'Unknown error'
         }),
         { 
           status: 400,
@@ -57,9 +71,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!data.results || data.results.length === 0) {
+    if (!data.places || data.places.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'No results found for this address' }),
+        JSON.stringify({ error: 'No results found for this location' }),
         { 
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,14 +81,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const result = data.results[0];
-    const location = result.geometry.location;
+    const place = data.places[0];
+    const location = place.location;
 
     return new Response(
       JSON.stringify({
-        lat: location.lat,
-        lng: location.lng,
-        formattedAddress: result.formatted_address,
+        lat: location.latitude,
+        lng: location.longitude,
+        formattedAddress: place.formattedAddress || place.displayName?.text || address,
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
