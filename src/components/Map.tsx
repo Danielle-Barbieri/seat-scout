@@ -1,101 +1,123 @@
-import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useEffect, useRef } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { Location } from '@/types/location';
-
-// Fix for default marker icons in production
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Custom marker icons based on busyness
-const createCustomIcon = (busyness: string, type: string) => {
-  const color = busyness === 'low' ? '#22c55e' : busyness === 'moderate' ? '#f59e0b' : '#ef4444';
-  const emoji = type === 'cafe' ? '☕' : '📚';
-  
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="
-      background-color: ${color};
-      width: 32px;
-      height: 32px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      border: 2px solid white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    ">
-      <span style="
-        transform: rotate(45deg);
-        font-size: 16px;
-      ">${emoji}</span>
-    </div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-  });
-};
 
 interface MapProps {
   locations: Location[];
   center: [number, number];
   onLocationClick: (location: Location) => void;
+  apiKey?: string;
 }
 
-const MapUpdater = ({ center }: { center: [number, number] }) => {
-  const map = useMap();
-  
-  useEffect(() => {
-    map.setView(center, 13, { animate: true });
-  }, [center, map]);
-  
-  return null;
+const getBusynessColor = (busyness: string) => {
+  switch (busyness) {
+    case 'low':
+      return '#22c55e';
+    case 'moderate':
+      return '#eab308';
+    case 'high':
+      return '#ef4444';
+    default:
+      return '#0ea5e9';
+  }
 };
 
-const Map = ({ locations, center, onLocationClick }: MapProps) => {
-  const [key, setKey] = React.useState(0);
+const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, apiKey }) => {
+  const mapContainer = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
 
+  // Initialize map
   useEffect(() => {
-    setKey(prev => prev + 1);
-  }, [center]);
+    if (!mapContainer.current || !apiKey) return;
 
-  return (
-    <MapContainer
-      key={key}
-      center={center}
-      zoom={13}
-      className="h-full w-full"
-      zoomControl={false}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <MapUpdater center={center} />
-      {locations.map((location) => (
-        <Marker
-          key={location.id}
-          position={[location.lat, location.lng]}
-          icon={createCustomIcon(location.busyness, location.type)}
-          eventHandlers={{
-            click: () => onLocationClick(location),
-          }}
-        >
-          <Popup>
-            <div className="text-sm">
-              <h3 className="font-semibold">{location.name}</h3>
-              <p className="text-muted-foreground">{location.address}</p>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
-  );
+    mapboxgl.accessToken = apiKey;
+
+    if (!mapRef.current) {
+      mapRef.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [center[1], center[0]],
+        zoom: 12,
+      });
+
+      mapRef.current.addControl(
+        new mapboxgl.NavigationControl({ visualizePitch: true }),
+        'top-right',
+      );
+    } else {
+      mapRef.current.easeTo({ center: [center[1], center[0]], zoom: 12, duration: 800 });
+    }
+  }, [center, apiKey]);
+
+  // Update markers when locations change
+  useEffect(() => {
+    if (!mapRef.current || !apiKey) return;
+
+    // Clear old markers
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+
+    locations.forEach((location) => {
+      const el = document.createElement('div');
+      const color = getBusynessColor(location.busyness);
+      el.style.width = '28px';
+      el.style.height = '28px';
+      el.style.borderRadius = '9999px';
+      el.style.backgroundColor = color;
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+      el.style.color = 'white';
+      el.style.fontSize = '14px';
+      el.style.boxShadow = '0 10px 25px rgba(15,23,42,0.35)';
+      el.style.border = '2px solid white';
+      el.style.cursor = 'pointer';
+
+      el.innerText = location.type === 'cafe' ? '☕' : '📚';
+
+      el.addEventListener('click', () => {
+        onLocationClick(location);
+        mapRef.current?.easeTo({
+          center: [location.lng, location.lat],
+          zoom: 14,
+          duration: 800,
+        });
+      });
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([location.lng, location.lat])
+        .addTo(mapRef.current!);
+
+      markersRef.current.push(marker);
+    });
+  }, [locations, onLocationClick, apiKey]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current = [];
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  if (!apiKey) {
+    return (
+      <div className="relative h-full w-full flex items-center justify-center bg-muted">
+        <div className="text-center px-6 max-w-md">
+          <h2 className="text-lg font-semibold text-foreground mb-2">Map preview unavailable</h2>
+          <p className="text-sm text-muted-foreground">
+            Add your Mapbox public token above to see an interactive map with nearby cafes and libraries.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <div ref={mapContainer} className="h-full w-full" />;
 };
 
 export default Map;
