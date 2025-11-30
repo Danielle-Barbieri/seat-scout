@@ -1,0 +1,191 @@
+import { Location } from '@/types/location';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Coffee, BookOpen, Wifi, Clock, MapPin, Star } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
+
+interface LocationDetailsProps {
+  location: Location;
+}
+
+const getBusinessColor = (busyness: string) => {
+  switch (busyness) {
+    case 'low':
+      return 'bg-success/10 text-success border-success/20';
+    case 'moderate':
+      return 'bg-warning/10 text-warning border-warning/20';
+    case 'high':
+      return 'bg-destructive/10 text-destructive border-destructive/20';
+    default:
+      return 'bg-muted text-muted-foreground';
+  }
+};
+
+const getBusinessText = (busyness: string) => {
+  switch (busyness) {
+    case 'low':
+      return 'Quiet';
+    case 'moderate':
+      return 'Moderate';
+    case 'high':
+      return 'Busy';
+    default:
+      return 'Unknown';
+  }
+};
+
+const getLikelihoodColor = (likelihood: number) => {
+  if (likelihood >= 70) return 'text-success';
+  if (likelihood >= 40) return 'text-warning';
+  return 'text-destructive';
+};
+
+// Simulate predicted availability throughout the day
+const getPredictedAvailability = () => {
+  const timeSlots = [
+    { time: '8 AM', label: 'Early Morning', likelihood: 90 },
+    { time: '10 AM', label: 'Mid Morning', likelihood: 70 },
+    { time: '12 PM', label: 'Lunch', likelihood: 30 },
+    { time: '2 PM', label: 'Afternoon', likelihood: 60 },
+    { time: '4 PM', label: 'Late Afternoon', likelihood: 50 },
+    { time: '6 PM', label: 'Evening', likelihood: 40 },
+  ];
+  return timeSlots;
+};
+
+const LocationDetails = ({ location }: LocationDetailsProps) => {
+  const Icon = location.type === 'cafe' ? Coffee : BookOpen;
+  const availability = getPredictedAvailability();
+  
+  const formatDistance = (meters?: number) => {
+    if (!meters) return null;
+    if (meters < 1000) return `${meters}m`;
+    return `${(meters / 1000).toFixed(1)}km`;
+  };
+
+  return (
+    <Card className="p-4 border-l-4" style={{
+      borderLeftColor:
+        location.busyness === 'low'
+          ? 'hsl(var(--success))'
+          : location.busyness === 'moderate'
+          ? 'hsl(var(--warning))'
+          : 'hsl(var(--destructive))',
+    }}>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon className="w-5 h-5 text-primary flex-shrink-0" />
+            <h3 className="font-bold text-lg text-foreground">{location.name}</h3>
+          </div>
+          
+          <div className="flex items-start gap-2 mb-2">
+            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground">{location.address}</p>
+          </div>
+
+          {location.rating && (
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span className="text-sm font-medium">{location.rating}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                ({location.userRatingsTotal?.toLocaleString()} reviews)
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2 mb-3">
+            <Badge variant="outline" className={cn('font-medium', getBusinessColor(location.busyness))}>
+              {getBusinessText(location.busyness)} Now
+            </Badge>
+            {location.hasWifi && (
+              <Badge variant="outline" className="text-xs">
+                <Wifi className="w-3 h-3 mr-1" />
+                WiFi
+              </Badge>
+            )}
+            {location.openUntil && (
+              <Badge variant="outline" className="text-xs">
+                <Clock className="w-3 h-3 mr-1" />
+                Open until {location.openUntil}
+              </Badge>
+            )}
+          </div>
+
+          {(location.distance || location.walkingTime) && (
+            <div className="flex gap-3 text-xs text-muted-foreground mb-4">
+              {location.distance && (
+                <span className="font-medium">{formatDistance(location.distance)} away</span>
+              )}
+              {location.walkingTime && (
+                <span>{location.walkingTime} min walk</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          <div className={cn('text-4xl font-bold', getLikelihoodColor(location.likelihood))}>
+            {location.likelihood}%
+          </div>
+          <div className="text-xs text-muted-foreground text-right">
+            Predicted<br />Availability
+          </div>
+        </div>
+      </div>
+
+      {/* Opening Hours */}
+      {location.openingHours?.weekdayDescriptions && (
+        <div className="mb-4 pb-4 border-b">
+          <h4 className="text-sm font-semibold mb-3 text-foreground">Opening Hours</h4>
+          <div className="space-y-1.5">
+            {location.openingHours.weekdayDescriptions.map((desc, idx) => {
+              const [day, hours] = desc.split(': ');
+              const isToday = new Date().getDay() === (idx + 1) % 7; // Adjust for Sunday being 0
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    'flex justify-between text-sm',
+                    isToday ? 'font-semibold text-foreground' : 'text-muted-foreground'
+                  )}
+                >
+                  <span>{day}</span>
+                  <span className={hours === 'Closed' ? 'text-destructive' : ''}>{hours}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Predicted Availability Throughout Day */}
+      <div>
+        <h4 className="text-sm font-semibold mb-3 text-foreground">Predicted Availability by Time</h4>
+        <div className="space-y-3">
+          {availability.map((slot) => (
+            <div key={slot.time}>
+              <div className="flex justify-between text-xs mb-1.5">
+                <span className="font-medium text-foreground">{slot.label}</span>
+                <span className={cn('font-semibold', getLikelihoodColor(slot.likelihood))}>
+                  {slot.likelihood}%
+                </span>
+              </div>
+              <Progress
+                value={slot.likelihood}
+                className="h-2"
+              />
+              <div className="text-xs text-muted-foreground mt-0.5">{slot.time}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+export default LocationDetails;

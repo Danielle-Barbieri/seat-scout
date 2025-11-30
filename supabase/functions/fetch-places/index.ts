@@ -171,6 +171,13 @@ serve(async (req) => {
       
       const locationType = determineLocationType(place.types || []);
       
+      // Extract closing time from opening hours
+      let openUntil = undefined;
+      if (place.currentOpeningHours?.openNow && place.currentOpeningHours?.nextCloseTime) {
+        const closeTime = new Date(place.currentOpeningHours.nextCloseTime);
+        openUntil = closeTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      }
+      
       return {
         id: place.id,
         name: place.displayName?.text || 'Unknown',
@@ -180,14 +187,18 @@ serve(async (req) => {
         lng: placeLng,
         busyness,
         likelihood,
-        openUntil: place.currentOpeningHours?.openNow ? '9:00 PM' : undefined,
+        openUntil,
         hasWifi: locationType === 'cafe', // Assume cafes have wifi
         distance: Math.round(distance),
         walkingTime,
         rating: place.rating,
         userRatingsTotal: place.userRatingCount,
-        hasDineIn: place.dineIn !== false, // Track if place has seating
-        priceLevel: place.priceLevel,
+        openingHours: place.currentOpeningHours ? {
+          openNow: place.currentOpeningHours.openNow,
+          weekdayDescriptions: place.currentOpeningHours.weekdayDescriptions,
+          nextCloseTime: place.currentOpeningHours.nextCloseTime,
+          nextOpenTime: place.currentOpeningHours.nextOpenTime,
+        } : undefined,
       };
     }).filter(Boolean);
 
