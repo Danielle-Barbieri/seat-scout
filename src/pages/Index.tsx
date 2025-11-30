@@ -93,12 +93,6 @@ const Index = () => {
     fetchNearbyPlaces(lat, lng, filter);
   };
 
-  const handleMapClick = (lat: number, lng: number) => {
-    setUserLocation([lat, lng]);
-    fetchNearbyPlaces(lat, lng, filter);
-    toast.success('Location updated');
-  };
-
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     setIsDragging(true);
     e.preventDefault();
@@ -201,7 +195,6 @@ const Index = () => {
           locations={filteredLocations}
           center={userLocation}
           onLocationClick={handleLocationClick}
-          onMapClick={handleMapClick}
           apiKey={mapboxToken}
           onMapReady={(map) => {
             mapInstanceRef.current = map;
