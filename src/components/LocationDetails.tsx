@@ -41,6 +41,27 @@ const getLikelihoodColor = (likelihood: number) => {
   return 'text-destructive';
 };
 
+const getLikelihoodText = (likelihood: number) => {
+  if (likelihood >= 75) return 'Likely Available';
+  if (likelihood >= 50) return 'May Be Available';
+  if (likelihood >= 25) return 'Limited Seating';
+  return 'Likely Full';
+};
+
+const getLikelihoodIcon = (likelihood: number) => {
+  if (likelihood >= 75) return '✓';
+  if (likelihood >= 50) return '○';
+  if (likelihood >= 25) return '△';
+  return '✕';
+};
+
+const getLikelihoodDescription = (likelihood: number) => {
+  if (likelihood >= 75) return 'Good chance of finding workspace seating';
+  if (likelihood >= 50) return 'Seating may be available, arrive early';
+  if (likelihood >= 25) return 'Very limited seating expected';
+  return 'Likely full, consider alternative location';
+};
+
 // Simulate predicted availability throughout the day
 const getPredictedAvailability = () => {
   const timeSlots = [
@@ -146,12 +167,24 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <div className={cn('text-4xl font-bold', getLikelihoodColor(location.likelihood))}>
-            {location.likelihood}%
-          </div>
-          <div className="text-xs text-muted-foreground text-right">
-            Predicted<br />Availability
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <div className={cn(
+            'px-4 py-3 rounded-lg text-center min-w-[140px]',
+            location.likelihood >= 70 
+              ? 'bg-success/10 border border-success/20' 
+              : location.likelihood >= 40 
+              ? 'bg-warning/10 border border-warning/20'
+              : 'bg-destructive/10 border border-destructive/20'
+          )}>
+            <div className={cn('text-4xl font-bold mb-2', getLikelihoodColor(location.likelihood))}>
+              {getLikelihoodIcon(location.likelihood)}
+            </div>
+            <div className={cn('text-sm font-semibold mb-1', getLikelihoodColor(location.likelihood))}>
+              {getLikelihoodText(location.likelihood)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {getLikelihoodDescription(location.likelihood)}
+            </div>
           </div>
         </div>
       </div>
@@ -183,23 +216,28 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
 
       {/* Predicted Availability Throughout Day */}
       <div>
-        <h4 className="text-sm font-semibold mb-3 text-foreground">Predicted Availability by Time</h4>
+        <h4 className="text-sm font-semibold mb-3 text-foreground">Workspace Availability by Time</h4>
         <div className="space-y-3">
-          {availability.map((slot) => (
-            <div key={slot.time}>
-              <div className="flex justify-between text-xs mb-1.5">
-                <span className="font-medium text-foreground">{slot.label}</span>
-                <span className={cn('font-semibold', getLikelihoodColor(slot.likelihood))}>
-                  {slot.likelihood}%
-                </span>
+          {availability.map((slot) => {
+            const statusText = getLikelihoodText(slot.likelihood);
+            const statusColor = getLikelihoodColor(slot.likelihood);
+            const statusIcon = getLikelihoodIcon(slot.likelihood);
+            
+            return (
+              <div key={slot.time} className="flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-sm font-medium text-foreground">{slot.label}</span>
+                    <span className="text-xs text-muted-foreground">{slot.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-lg font-bold', statusColor)}>{statusIcon}</span>
+                    <span className={cn('text-xs font-semibold', statusColor)}>{statusText}</span>
+                  </div>
+                </div>
               </div>
-              <Progress
-                value={slot.likelihood}
-                className="h-2"
-              />
-              <div className="text-xs text-muted-foreground mt-0.5">{slot.time}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </Card>

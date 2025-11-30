@@ -41,6 +41,20 @@ const getLikelihoodColor = (likelihood: number) => {
   return 'text-destructive';
 };
 
+const getLikelihoodText = (likelihood: number) => {
+  if (likelihood >= 75) return 'Likely Available';
+  if (likelihood >= 50) return 'May Be Available';
+  if (likelihood >= 25) return 'Limited Seating';
+  return 'Likely Full';
+};
+
+const getLikelihoodIcon = (likelihood: number) => {
+  if (likelihood >= 75) return '✓';
+  if (likelihood >= 50) return '○';
+  if (likelihood >= 25) return '△';
+  return '✕';
+};
+
 const LocationCard = ({ location, onClick }: LocationCardProps) => {
   const Icon = location.type === 'cafe' ? Coffee : BookOpen;
   
@@ -119,11 +133,20 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
         </div>
 
         <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          <div className={cn('text-3xl font-bold', getLikelihoodColor(location.likelihood))}>
-            {location.likelihood}%
-          </div>
-          <div className="text-xs text-muted-foreground text-right">
-            Predicted Availability
+          <div className={cn(
+            'px-3 py-2 rounded-lg text-center',
+            location.likelihood >= 70 
+              ? 'bg-success/10 border border-success/20' 
+              : location.likelihood >= 40 
+              ? 'bg-warning/10 border border-warning/20'
+              : 'bg-destructive/10 border border-destructive/20'
+          )}>
+            <div className={cn('text-2xl font-bold mb-1', getLikelihoodColor(location.likelihood))}>
+              {getLikelihoodIcon(location.likelihood)}
+            </div>
+            <div className={cn('text-xs font-semibold whitespace-nowrap', getLikelihoodColor(location.likelihood))}>
+              {getLikelihoodText(location.likelihood)}
+            </div>
           </div>
         </div>
       </div>
