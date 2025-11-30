@@ -88,17 +88,6 @@ const Index = () => {
     setSelectedLocation(location);
   };
 
-  const handleRecenter = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        setUserLocation([lat, lng]);
-        fetchNearbyPlaces(lat, lng, filter);
-      });
-    }
-  };
-
   const handleSearchLocationSelect = (lat: number, lng: number, address: string) => {
     setUserLocation([lat, lng]);
     fetchNearbyPlaces(lat, lng, filter);
@@ -219,15 +208,6 @@ const Index = () => {
           }}
         />
       </div>
-
-      {/* Recenter button - positioned on left to avoid map controls */}
-      <Button
-        onClick={handleRecenter}
-        size="icon"
-        className="absolute top-24 left-4 z-[1000] shadow-lg"
-      >
-        <MapPin className="w-4 h-4" />
-      </Button>
 
       {/* Resizable panel */}
       <div
