@@ -43,6 +43,12 @@ const getLikelihoodColor = (likelihood: number) => {
 
 const LocationCard = ({ location, onClick }: LocationCardProps) => {
   const Icon = location.type === 'cafe' ? Coffee : BookOpen;
+  
+  const formatDistance = (meters?: number) => {
+    if (!meters) return null;
+    if (meters < 1000) return `${meters}m`;
+    return `${(meters / 1000).toFixed(1)}km`;
+  };
 
   return (
     <Card
@@ -65,7 +71,7 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
           </div>
           <p className="text-sm text-muted-foreground mb-2 truncate">{location.address}</p>
           
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center mb-2">
             <Badge variant="outline" className={cn('font-medium', getBusinessColor(location.busyness))}>
               {getBusinessText(location.busyness)}
             </Badge>
@@ -82,6 +88,17 @@ const LocationCard = ({ location, onClick }: LocationCardProps) => {
               </Badge>
             )}
           </div>
+
+          {(location.distance || location.walkingTime) && (
+            <div className="flex gap-3 text-xs text-muted-foreground">
+              {location.distance && (
+                <span className="font-medium">{formatDistance(location.distance)} away</span>
+              )}
+              {location.walkingTime && (
+                <span>{location.walkingTime} min walk</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-end gap-1 flex-shrink-0">

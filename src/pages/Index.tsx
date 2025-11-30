@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import Map from '@/components/Map';
 import LocationCard from '@/components/LocationCard';
 import { Button } from '@/components/ui/button';
-import { mockLocations } from '@/data/mockLocations';
 import { Location, LocationType } from '@/types/location';
-import { MapPin, Coffee, BookOpen } from 'lucide-react';
+import { MapPin, Coffee, BookOpen, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [userLocation, setUserLocation] = useState<[number, number]>([37.7749, -122.4194]); // SF default
@@ -13,25 +13,72 @@ const Index = () => {
   const [filter, setFilter] = useState<LocationType | 'all'>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [mapboxToken] = useState('pk.eyJ1IjoiZGFuaWVsbGVseW5iYXJiaWVyaSIsImEiOiJjbWltYTh0NzUxYWNkM2ZxMzhlMHA0bnBhIn0.MOCVTwVpuj1oxsv6_xJOSA');
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchNearbyPlaces = async (lat: number, lng: number, locationType?: LocationType | 'all') => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-places`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lat,
+            lng,
+            type: locationType === 'all' || !locationType ? 'cafe' : locationType,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error('Error fetching places:', data.error);
+        toast.error('Failed to fetch nearby places');
+        return;
+      }
+
+      setLocations(data.locations || []);
+      setDrawerOpen(true);
+    } catch (error) {
+      console.error('Error fetching places:', error);
+      toast.error('Failed to fetch nearby places');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Get user's location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation([position.coords.latitude, position.coords.longitude]);
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setUserLocation([lat, lng]);
+          fetchNearbyPlaces(lat, lng, filter);
         },
         (error) => {
           console.log('Location access denied, using default location');
+          fetchNearbyPlaces(userLocation[0], userLocation[1], filter);
         }
       );
+    } else {
+      fetchNearbyPlaces(userLocation[0], userLocation[1], filter);
     }
   }, []);
 
-  const filteredLocations = mockLocations.filter((loc) => {
-    if (filter === 'all') return true;
-    return loc.type === filter;
-  });
+  const filteredLocations = filter === 'all' ? locations : locations.filter((loc) => loc.type === filter);
+
+  useEffect(() => {
+    if (userLocation) {
+      fetchNearbyPlaces(userLocation[0], userLocation[1], filter);
+    }
+  }, [filter]);
 
   const handleLocationClick = (location: Location) => {
     setSelectedLocation(location);
@@ -41,7 +88,10 @@ const Index = () => {
   const handleRecenter = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
-        setUserLocation([position.coords.latitude, position.coords.longitude]);
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setUserLocation([lat, lng]);
+        fetchNearbyPlaces(lat, lng, filter);
       });
     }
   };
@@ -131,28 +181,36 @@ const Index = () => {
         <div className="px-4 pb-6 max-h-[60vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
-              {filteredLocations.length} Workspaces Nearby
+              {loading ? 'Loading...' : `${filteredLocations.length} Workspaces Nearby`}
             </h2>
           </div>
 
-          <div className="space-y-3">
-            {filteredLocations.map((location) => (
-              <LocationCard
-                key={location.id}
-                location={location}
-                onClick={() => {
-                  setSelectedLocation(location);
-                  setUserLocation([location.lat, location.lng]);
-                }}
-              />
-            ))}
-          </div>
-
-          {filteredLocations.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No {filter === 'all' ? 'workspaces' : filter === 'cafe' ? 'cafes' : 'libraries'} found
-              nearby
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {filteredLocations.map((location) => (
+                  <LocationCard
+                    key={location.id}
+                    location={location}
+                    onClick={() => {
+                      setSelectedLocation(location);
+                      setUserLocation([location.lat, location.lng]);
+                    }}
+                  />
+                ))}
+              </div>
+
+              {filteredLocations.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No {filter === 'all' ? 'workspaces' : filter === 'cafe' ? 'cafes' : 'libraries'} found
+                  nearby
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
