@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Map from '@/components/Map';
 import LocationCard from '@/components/LocationCard';
 import LocationDetails from '@/components/LocationDetails';
@@ -8,6 +8,7 @@ import { Location, LocationType } from '@/types/location';
 import { MapPin, Coffee, BookOpen, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import mapboxgl from 'mapbox-gl';
 
 const Index = () => {
   const [userLocation, setUserLocation] = useState<[number, number]>([37.7749, -122.4194]); // SF default
@@ -18,6 +19,7 @@ const Index = () => {
   const [loading, setLoading] = useState(false);
   const [panelHeight, setPanelHeight] = useState(40); // percentage of screen
   const [isDragging, setIsDragging] = useState(false);
+  const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
 
   const fetchNearbyPlaces = async (lat: number, lng: number, locationType?: LocationType | 'all') => {
     setLoading(true);
@@ -124,6 +126,13 @@ const Index = () => {
     // Constrain between 20% and 80%
     const constrainedHeight = Math.min(Math.max(newHeight, 20), 80);
     setPanelHeight(constrainedHeight);
+    
+    // Trigger map resize
+    if (mapInstanceRef.current) {
+      requestAnimationFrame(() => {
+        mapInstanceRef.current?.resize();
+      });
+    }
   };
 
   const handleDragEnd = () => {
@@ -205,6 +214,9 @@ const Index = () => {
           onLocationClick={handleLocationClick}
           onMapClick={handleMapClick}
           apiKey={mapboxToken}
+          onMapReady={(map) => {
+            mapInstanceRef.current = map;
+          }}
         />
       </div>
 

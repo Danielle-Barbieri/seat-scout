@@ -9,6 +9,7 @@ interface MapProps {
   onLocationClick: (location: Location) => void;
   onMapClick?: (lat: number, lng: number) => void;
   apiKey?: string;
+  onMapReady?: (map: mapboxgl.Map) => void;
 }
 
 const getBusynessColor = (busyness: string) => {
@@ -24,7 +25,7 @@ const getBusynessColor = (busyness: string) => {
   }
 };
 
-const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClick, apiKey }) => {
+const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClick, apiKey, onMapReady }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -55,10 +56,17 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
           onMapClick(lat, lng);
         });
       }
+
+      // Notify parent when map is ready
+      if (onMapReady) {
+        mapRef.current.on('load', () => {
+          onMapReady(mapRef.current!);
+        });
+      }
     } else {
       mapRef.current.easeTo({ center: [center[1], center[0]], zoom: 12, duration: 800 });
     }
-  }, [center, apiKey]);
+  }, [center, apiKey, onMapClick, onMapReady]);
 
   // Update markers when locations change
   useEffect(() => {
