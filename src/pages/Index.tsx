@@ -166,7 +166,7 @@ const Index = () => {
       {/* Main content - Map and List side by side */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Map */}
-        <div className="w-full md:w-2/5 h-1/2 md:h-full">
+        <div className="w-full md:w-3/5 h-1/2 md:h-full">
           <Map
             locations={filteredLocations}
             center={userLocation}
@@ -183,7 +183,7 @@ const Index = () => {
         </div>
 
         {/* List panel */}
-        <div className="w-full md:w-3/5 h-1/2 md:h-full bg-background border-l overflow-y-auto">
+        <div className="w-full md:w-2/5 h-1/2 md:h-full bg-background border-l overflow-y-auto">
           <div className="p-4 md:p-6">
             {selectedLocation ? (
               <div className="mb-4">
