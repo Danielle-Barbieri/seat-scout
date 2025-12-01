@@ -22,6 +22,7 @@ const Index = () => {
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [hasRealLocation, setHasRealLocation] = useState(false); // Track if location is from GPS
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isUserDraggingRef = useRef(false); // Track if user is manually moving map
 
   const fetchNearbyPlaces = async (lat: number, lng: number, locationType?: LocationType | 'all') => {
     setLoading(true);
@@ -100,6 +101,9 @@ const Index = () => {
   };
 
   const handleMapMoved = (lat: number, lng: number) => {
+    // Only fetch if user manually moved the map
+    if (!isUserDraggingRef.current) return;
+    
     // Debounce the fetch to avoid too many requests while dragging
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current);
@@ -109,6 +113,7 @@ const Index = () => {
       setUserLocation([lat, lng]);
       setHasRealLocation(false); // Map dragged location, not real GPS
       fetchNearbyPlaces(lat, lng, filter);
+      isUserDraggingRef.current = false; // Reset after fetch
     }, 500); // Wait 500ms after user stops dragging
   };
 
@@ -219,6 +224,9 @@ const Index = () => {
             mapInstanceRef.current = map;
           }}
           onMapMoved={handleMapMoved}
+          onUserDragStart={() => {
+            isUserDraggingRef.current = true;
+          }}
         />
       </div>
 
