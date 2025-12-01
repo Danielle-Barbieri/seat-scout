@@ -119,7 +119,7 @@ const Index = () => {
     <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
       {/* Header */}
       <div className="flex-shrink-0 z-[1000] bg-background/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 space-y-2">
+        <div className="max-w-7xl mx-auto px-4 py-2 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
