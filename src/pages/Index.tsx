@@ -17,8 +17,6 @@ const Index = () => {
   const [mapboxToken] = useState('pk.eyJ1IjoiZGFuaWVsbGVseW5iYXJiaWVyaSIsImEiOiJjbWltYTh0NzUxYWNkM2ZxMzhlMHA0bnBhIn0.MOCVTwVpuj1oxsv6_xJOSA');
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(false);
-  const [panelHeight, setPanelHeight] = useState(40); // percentage of screen
-  const [isDragging, setIsDragging] = useState(false);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [hasRealLocation, setHasRealLocation] = useState(false); // Track if location is from GPS
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -117,55 +115,10 @@ const Index = () => {
     }, 500); // Wait 500ms after user stops dragging
   };
 
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    setIsDragging(true);
-    e.preventDefault();
-  };
-
-  const handleDragMove = (e: MouseEvent | TouchEvent) => {
-    if (!isDragging) return;
-    
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const windowHeight = window.innerHeight;
-    const headerHeight = 72;
-    const newHeight = ((windowHeight - clientY) / (windowHeight - headerHeight)) * 100;
-    
-    // Constrain between 20% and 80%
-    const constrainedHeight = Math.min(Math.max(newHeight, 20), 80);
-    setPanelHeight(constrainedHeight);
-    
-    // Trigger map resize
-    if (mapInstanceRef.current) {
-      requestAnimationFrame(() => {
-        mapInstanceRef.current?.resize();
-      });
-    }
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-  };
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleDragMove);
-      window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchmove', handleDragMove);
-      window.addEventListener('touchend', handleDragEnd);
-      
-      return () => {
-        window.removeEventListener('mousemove', handleDragMove);
-        window.removeEventListener('mouseup', handleDragEnd);
-        window.removeEventListener('touchmove', handleDragMove);
-        window.removeEventListener('touchend', handleDragEnd);
-      };
-    }
-  }, [isDragging]);
-
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-background">
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-[1000] bg-background/95 backdrop-blur-sm border-b shadow-sm">
+      <div className="flex-shrink-0 z-[1000] bg-background/95 backdrop-blur-sm border-b shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -210,98 +163,85 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Map - adjusts height based on panel */}
-      <div 
-        className="absolute inset-0 pt-[72px]"
-        style={{ bottom: `${panelHeight}vh` }}
-      >
-        <Map
-          locations={filteredLocations}
-          center={userLocation}
-          onLocationClick={handleLocationClick}
-          apiKey={mapboxToken}
-          onMapReady={(map) => {
-            mapInstanceRef.current = map;
-          }}
-          onMapMoved={handleMapMoved}
-          onUserDragStart={() => {
-            isUserDraggingRef.current = true;
-          }}
-        />
-      </div>
-
-      {/* Resizable panel */}
-      <div
-        className="absolute bottom-0 left-0 right-0 z-[1000] bg-background rounded-t-3xl shadow-2xl flex flex-col"
-        style={{ height: `${panelHeight}vh` }}
-      >
-        {/* Drag handle */}
-        <div
-          onMouseDown={handleDragStart}
-          onTouchStart={handleDragStart}
-          className="w-full py-3 flex justify-center cursor-row-resize hover:bg-muted/50 active:bg-muted transition-colors"
-        >
-          <div className="w-12 h-1.5 bg-muted-foreground/50 rounded-full" />
+      {/* Main content - Map and List side by side */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Map */}
+        <div className="w-full md:w-2/5 h-1/2 md:h-full">
+          <Map
+            locations={filteredLocations}
+            center={userLocation}
+            onLocationClick={handleLocationClick}
+            apiKey={mapboxToken}
+            onMapReady={(map) => {
+              mapInstanceRef.current = map;
+            }}
+            onMapMoved={handleMapMoved}
+            onUserDragStart={() => {
+              isUserDraggingRef.current = true;
+            }}
+          />
         </div>
 
-        {/* Drawer content */}
-        <div className="px-4 pb-6 overflow-y-auto flex-1">
-          {selectedLocation ? (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold text-foreground">Workspace Details</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedLocation(null)}
-                  className="text-muted-foreground"
-                >
-                  View All
-                </Button>
-              </div>
-              <LocationDetails location={selectedLocation} />
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {loading ? 'Loading...' : `${filteredLocations.length} Workspaces Nearby`}
-                </h2>
-              </div>
-
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        {/* List panel */}
+        <div className="w-full md:w-3/5 h-1/2 md:h-full bg-background border-l overflow-y-auto">
+          <div className="p-4 md:p-6">
+            {selectedLocation ? (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-foreground">Workspace Details</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedLocation(null)}
+                    className="text-muted-foreground"
+                  >
+                    View All
+                  </Button>
                 </div>
-              ) : (
-                <>
-                  <div className="space-y-3">
-                    {filteredLocations.map((location) => (
-                      <LocationCard
-                        key={location.id}
-                        location={{
-                          ...location,
-                          // Only show distance/walk time if we have real GPS location
-                          distance: hasRealLocation ? location.distance : undefined,
-                          walkingTime: hasRealLocation ? location.walkingTime : undefined,
-                        }}
-                        onClick={() => {
-                          setSelectedLocation(location);
-                        }}
-                      />
-                    ))}
-                  </div>
+                <LocationDetails location={selectedLocation} />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {loading ? 'Loading...' : `${filteredLocations.length} Workspaces Nearby`}
+                  </h2>
+                </div>
 
-                  {filteredLocations.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No {filter === 'all' ? 'workspaces' : filter === 'cafe' ? 'cafes' : 'libraries'} found
-                      nearby
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {filteredLocations.map((location) => (
+                        <LocationCard
+                          key={location.id}
+                          location={{
+                            ...location,
+                            // Only show distance/walk time if we have real GPS location
+                            distance: hasRealLocation ? location.distance : undefined,
+                            walkingTime: hasRealLocation ? location.walkingTime : undefined,
+                          }}
+                          onClick={() => {
+                            setSelectedLocation(location);
+                          }}
+                        />
+                      ))}
                     </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+
+                    {filteredLocations.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No {filter === 'all' ? 'workspaces' : filter === 'cafe' ? 'cafes' : 'libraries'} found
+                        nearby
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
