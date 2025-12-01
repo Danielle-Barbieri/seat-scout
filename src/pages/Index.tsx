@@ -21,6 +21,7 @@ const Index = () => {
   const [isDragging, setIsDragging] = useState(false);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
   const [hasRealLocation, setHasRealLocation] = useState(false); // Track if location is from GPS
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchNearbyPlaces = async (lat: number, lng: number, locationType?: LocationType | 'all') => {
     setLoading(true);
@@ -96,6 +97,19 @@ const Index = () => {
     setUserLocation([lat, lng]);
     setHasRealLocation(false); // Searched location, not real GPS
     fetchNearbyPlaces(lat, lng, filter);
+  };
+
+  const handleMapMoved = (lat: number, lng: number) => {
+    // Debounce the fetch to avoid too many requests while dragging
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+
+    fetchTimeoutRef.current = setTimeout(() => {
+      setUserLocation([lat, lng]);
+      setHasRealLocation(false); // Map dragged location, not real GPS
+      fetchNearbyPlaces(lat, lng, filter);
+    }, 500); // Wait 500ms after user stops dragging
   };
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
@@ -204,6 +218,7 @@ const Index = () => {
           onMapReady={(map) => {
             mapInstanceRef.current = map;
           }}
+          onMapMoved={handleMapMoved}
         />
       </div>
 
