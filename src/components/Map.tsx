@@ -11,6 +11,7 @@ interface MapProps {
   apiKey?: string;
   onMapReady?: (map: mapboxgl.Map) => void;
   onMapMoved?: (lat: number, lng: number) => void;
+  onUserDragStart?: () => void;
 }
 
 const getBusynessColor = (busyness: string) => {
@@ -26,7 +27,7 @@ const getBusynessColor = (busyness: string) => {
   }
 };
 
-const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClick, apiKey, onMapReady, onMapMoved }) => {
+const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClick, apiKey, onMapReady, onMapMoved, onUserDragStart }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -65,6 +66,13 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
         });
       }
 
+      // Track when user starts dragging
+      if (onUserDragStart) {
+        mapRef.current.on('dragstart', () => {
+          onUserDragStart();
+        });
+      }
+
       // Add moveend event to fetch new places when user drags map
       if (onMapMoved) {
         mapRef.current.on('moveend', () => {
@@ -75,7 +83,7 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
     } else {
       mapRef.current.easeTo({ center: [center[1], center[0]], zoom: 12, duration: 800 });
     }
-  }, [center, apiKey, onMapClick, onMapReady, onMapMoved]);
+  }, [center, apiKey, onMapClick, onMapReady, onMapMoved, onUserDragStart]);
 
   // Update markers when locations change
   useEffect(() => {
