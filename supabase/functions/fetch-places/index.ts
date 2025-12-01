@@ -190,24 +190,41 @@ serve(async (req) => {
           // Must have dine-in capability (filters out takeout-only)
           if (place.dineIn === false) return false;
           
-          // Exclude if it's also a full restaurant/diner/fast food
+          // Exclude if it's a full restaurant/diner/fast food (but allow bakeries)
           if (types.includes('restaurant') || 
               types.includes('diner') || 
               types.includes('fast_food_restaurant') ||
               types.includes('hamburger_restaurant') ||
-              types.includes('sandwich_shop') ||
-              types.includes('bagel_shop')) {
+              types.includes('sandwich_shop')) {
             return false;
           }
           
           // Exclude places with names that suggest they're not work-friendly
-          const excludeKeywords = ['diner', 'restaurant', 'bagel', 'pizza', 'burger', 'grill', 'bistro', 'eatery'];
+          const excludeKeywords = ['diner', 'restaurant', 'pizza', 'burger', 'grill', 'bistro', 'eatery'];
           if (excludeKeywords.some(keyword => name.includes(keyword))) {
             return false;
           }
           
           // If it's a cafe and ONLY does takeout, skip it
           if (place.takeout === true && place.dineIn === false) return false;
+        }
+        
+        // For bakeries, allow them if they have cafe characteristics
+        if (types.includes('bakery')) {
+          // Allow bakeries that also have cafe/coffee_shop type
+          if (types.includes('cafe') || types.includes('coffee_shop')) {
+            // Must have dine-in capability
+            if (place.dineIn === false) return false;
+            return true;
+          }
+          
+          // Allow bakeries with dine-in and good ratings (likely cafe-style)
+          if (place.dineIn === true && place.rating >= 4.0) {
+            return true;
+          }
+          
+          // Otherwise filter out pure bakeries without seating
+          return false;
         }
         
         return true;
