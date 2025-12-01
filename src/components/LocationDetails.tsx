@@ -113,16 +113,16 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
           : 'hsl(var(--destructive))',
     }}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex-1 min-w-0">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex-1 min-w-0 max-w-[calc(100%-160px)]">
           <div className="flex items-center gap-2 mb-2">
             <Icon className="w-5 h-5 text-primary flex-shrink-0" />
-            <h3 className="font-bold text-lg text-foreground">{location.name}</h3>
+            <h3 className="font-bold text-lg text-foreground truncate">{location.name}</h3>
           </div>
           
           <div className="flex items-start gap-2 mb-2">
             <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-muted-foreground">{location.address}</p>
+            <p className="text-sm text-muted-foreground break-words">{location.address}</p>
           </div>
 
           {location.rating && (
@@ -160,22 +160,11 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
               </Badge>
             )}
           </div>
-
-          {(location.distance || location.walkingTime) && (
-            <div className="flex gap-3 text-xs text-muted-foreground mb-4">
-              {location.distance && (
-                <span className="font-medium">{formatDistance(location.distance)} away</span>
-              )}
-              {location.walkingTime && (
-                <span>{location.walkingTime} min walk</span>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
           <div className={cn(
-            'px-4 py-3 rounded-lg text-center min-w-[140px]',
+            'px-4 py-3 rounded-lg text-center w-[140px]',
             location.likelihood >= 70 
               ? 'bg-success/10 border border-success/20' 
               : location.likelihood >= 40 
