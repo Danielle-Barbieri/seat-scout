@@ -135,8 +135,9 @@ serve(async (req) => {
       .filter((place: any) => {
         // Filter criteria to ensure workspace-friendly venues
         
-        // Must be currently open
-        if (!place.currentOpeningHours?.openNow) return false;
+        // Must have opening hours info (but don't filter by current open status)
+        // This allows frontend to filter by future times
+        if (!place.currentOpeningHours?.weekdayDescriptions) return false;
         
         // Must have at least some ratings (indicates established venue)
         if (!place.rating || place.rating < 3.5) return false;
