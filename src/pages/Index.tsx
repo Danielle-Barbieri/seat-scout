@@ -20,6 +20,7 @@ const Index = () => {
   const [panelHeight, setPanelHeight] = useState(40); // percentage of screen
   const [isDragging, setIsDragging] = useState(false);
   const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
+  const [hasRealLocation, setHasRealLocation] = useState(false); // Track if location is from GPS
 
   const fetchNearbyPlaces = async (lat: number, lng: number, locationType?: LocationType | 'all') => {
     setLoading(true);
@@ -64,14 +65,17 @@ const Index = () => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           setUserLocation([lat, lng]);
+          setHasRealLocation(true); // Mark as real GPS location
           fetchNearbyPlaces(lat, lng, filter);
         },
         (error) => {
           console.log('Location access denied, using default location');
+          setHasRealLocation(false);
           fetchNearbyPlaces(userLocation[0], userLocation[1], filter);
         }
       );
     } else {
+      setHasRealLocation(false);
       fetchNearbyPlaces(userLocation[0], userLocation[1], filter);
     }
   }, []);
@@ -90,6 +94,7 @@ const Index = () => {
 
   const handleSearchLocationSelect = (lat: number, lng: number, address: string) => {
     setUserLocation([lat, lng]);
+    setHasRealLocation(false); // Searched location, not real GPS
     fetchNearbyPlaces(lat, lng, filter);
   };
 
@@ -251,7 +256,12 @@ const Index = () => {
                     {filteredLocations.map((location) => (
                       <LocationCard
                         key={location.id}
-                        location={location}
+                        location={{
+                          ...location,
+                          // Only show distance/walk time if we have real GPS location
+                          distance: hasRealLocation ? location.distance : undefined,
+                          walkingTime: hasRealLocation ? location.walkingTime : undefined,
+                        }}
                         onClick={() => {
                           setSelectedLocation(location);
                         }}
