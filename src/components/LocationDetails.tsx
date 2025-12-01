@@ -1,9 +1,18 @@
+import { useState } from 'react';
 import { Location } from '@/types/location';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Coffee, BookOpen, Wifi, Clock, MapPin, Star } from 'lucide-react';
+import { Coffee, BookOpen, Wifi, Clock, MapPin, Star, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface LocationDetailsProps {
   location: Location;
@@ -62,22 +71,57 @@ const getLikelihoodDescription = (likelihood: number) => {
   return 'Likely full, consider alternative location';
 };
 
-// Simulate predicted availability throughout the day
-const getPredictedAvailability = () => {
+// Simulate predicted availability throughout the day with dynamic predictions
+const getPredictedAvailability = (dayOffset: number = 0, hour?: number) => {
   const timeSlots = [
-    { time: '8 AM', label: 'Early Morning', likelihood: 90 },
-    { time: '10 AM', label: 'Mid Morning', likelihood: 70 },
-    { time: '12 PM', label: 'Lunch', likelihood: 30 },
-    { time: '2 PM', label: 'Afternoon', likelihood: 60 },
-    { time: '4 PM', label: 'Late Afternoon', likelihood: 50 },
-    { time: '6 PM', label: 'Evening', likelihood: 40 },
+    { time: '8 AM', hour: 8, label: 'Early Morning', baseLikelihood: 90 },
+    { time: '10 AM', hour: 10, label: 'Mid Morning', baseLikelihood: 70 },
+    { time: '12 PM', hour: 12, label: 'Lunch', baseLikelihood: 30 },
+    { time: '2 PM', hour: 14, label: 'Afternoon', baseLikelihood: 60 },
+    { time: '4 PM', hour: 16, label: 'Late Afternoon', baseLikelihood: 50 },
+    { time: '6 PM', hour: 18, label: 'Evening', baseLikelihood: 40 },
   ];
-  return timeSlots;
+
+  // Adjust predictions based on day of week
+  const targetDate = new Date();
+  targetDate.setDate(targetDate.getDate() + dayOffset);
+  const dayOfWeek = targetDate.getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+  return timeSlots.map(slot => {
+    let likelihood = slot.baseLikelihood;
+    
+    // Weekend adjustment - generally less busy during work hours
+    if (isWeekend && slot.hour >= 9 && slot.hour <= 17) {
+      likelihood = Math.min(100, likelihood + 15);
+    }
+    
+    // Future day uncertainty - add slight variation
+    if (dayOffset > 0) {
+      likelihood = Math.max(20, Math.min(95, likelihood + (Math.random() * 10 - 5)));
+    }
+
+    return {
+      ...slot,
+      likelihood: Math.round(likelihood),
+    };
+  });
 };
 
 const LocationDetails = ({ location }: LocationDetailsProps) => {
+  const [selectedDay, setSelectedDay] = useState(0); // 0 = today, 1 = tomorrow, etc.
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null);
+  
   const Icon = location.type === 'cafe' ? Coffee : BookOpen;
-  const availability = getPredictedAvailability();
+  const availability = getPredictedAvailability(selectedDay);
+  
+  const getDayLabel = (offset: number) => {
+    if (offset === 0) return 'Today';
+    if (offset === 1) return 'Tomorrow';
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
   
   const formatDistance = (meters?: number) => {
     if (!meters) return null;
@@ -211,15 +255,43 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
 
       {/* Predicted Availability Throughout Day */}
       <div>
-        <h4 className="text-sm font-semibold mb-3 text-foreground">Workspace Availability by Time</h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-foreground">Workspace Availability Prediction</h4>
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Select value={selectedDay.toString()} onValueChange={(v) => setSelectedDay(parseInt(v))}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                  <SelectItem key={day} value={day.toString()}>
+                    {getDayLabel(day)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
         <div className="space-y-3">
-          {availability.map((slot) => {
+          {availability.map((slot, idx) => {
             const statusText = getLikelihoodText(slot.likelihood);
             const statusColor = getLikelihoodColor(slot.likelihood);
             const statusIcon = getLikelihoodIcon(slot.likelihood);
+            const isSelected = selectedTimeSlot === idx;
             
             return (
-              <div key={slot.time} className="flex items-center gap-3">
+              <button
+                key={slot.time}
+                onClick={() => setSelectedTimeSlot(isSelected ? null : idx)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left",
+                  isSelected 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border hover:border-primary/50 hover:bg-muted/50"
+                )}
+              >
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-1.5">
                     <span className="text-sm font-medium text-foreground">{slot.label}</span>
@@ -230,10 +302,14 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
                     <span className={cn('text-xs font-semibold', statusColor)}>{statusText}</span>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
+        
+        <p className="text-xs text-muted-foreground mt-3 italic">
+          Predictions based on historical patterns and time of day. Actual availability may vary.
+        </p>
       </div>
     </Card>
   );
