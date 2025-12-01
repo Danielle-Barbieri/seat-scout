@@ -43,7 +43,7 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/light-v11',
         center: [center[1], center[0]],
-        zoom: 12,
+        zoom: 14,
       });
 
       mapRef.current.addControl(
@@ -81,7 +81,7 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
         });
       }
     } else {
-      mapRef.current.easeTo({ center: [center[1], center[0]], zoom: 12, duration: 800 });
+      mapRef.current.easeTo({ center: [center[1], center[0]], zoom: 14, duration: 800 });
     }
   }, [center, apiKey, onMapClick, onMapReady, onMapMoved, onUserDragStart]);
 
