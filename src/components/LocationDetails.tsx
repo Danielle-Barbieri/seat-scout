@@ -114,10 +114,10 @@ const LocationDetails = ({ location }: LocationDetailsProps) => {
     }}>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-4">
-        <div className="flex-1 min-w-0 max-w-[calc(100%-160px)]">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <Icon className="w-5 h-5 text-primary flex-shrink-0" />
-            <h3 className="font-bold text-lg text-foreground truncate">{location.name}</h3>
+            <h3 className="font-bold text-lg text-foreground break-words">{location.name}</h3>
           </div>
           
           <div className="flex items-start gap-2 mb-2">

@@ -222,7 +222,7 @@ const Index = () => {
                       {timeMode === 'later' ? `${getDayLabel(selectedDate)} ${getTimeLabel(selectedHour)}` : 'Another Time'}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80" align="end">
+                  <PopoverContent className="w-80" align="end" sideOffset={8}>
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium mb-2 block">Select Day</label>
@@ -236,7 +236,7 @@ const Index = () => {
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent position="popper" sideOffset={4}>
                             {[0, 1, 2, 3, 4, 5, 6].map((day) => (
                               <SelectItem key={day} value={day.toString()}>
                                 {getDayLabel(day)}
@@ -257,7 +257,7 @@ const Index = () => {
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent position="popper" sideOffset={4}>
                             {Array.from({ length: 24 }, (_, i) => i + 6).filter(h => h < 24).map((hour) => (
                               <SelectItem key={hour} value={hour.toString()}>
                                 {getTimeLabel(hour)}
