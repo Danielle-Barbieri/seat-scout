@@ -136,96 +136,44 @@ serve(async (req) => {
         // Filter criteria to ensure workspace-friendly venues
         
         // Must have opening hours info (but don't filter by current open status)
-        // This allows frontend to filter by future times
         if (!place.currentOpeningHours?.weekdayDescriptions) return false;
         
-        // Must have at least some ratings (indicates established venue)
-        if (!place.rating || place.rating < 3.5) return false;
-        if (!place.userRatingCount || place.userRatingCount < 10) return false;
+        // Relax rating requirements - only exclude very low rated or unrated places
+        if (!place.rating || place.rating < 3.0) return false;
         
         const types = place.types || [];
         const name = (place.displayName?.text || '').toLowerCase();
         
         // For libraries, ensure they are PUBLIC libraries only
         if (types.includes('library')) {
-          // Exclude institutional libraries (colleges, universities, schools)
-          const institutionalTypes = [
-            'university',
-            'school',
-            'secondary_school',
-            'primary_school',
-            'college',
-            'student_housing'
-          ];
+          const institutionalTypes = ['university', 'school', 'secondary_school', 'primary_school', 'college'];
+          if (types.some((t: string) => institutionalTypes.includes(t))) return false;
           
-          if (types.some((t: string) => institutionalTypes.includes(t))) {
-            return false;
-          }
+          const institutionalKeywords = ['college', 'university', 'school', 'academy', 'institute', 'campus'];
+          if (institutionalKeywords.some(keyword => name.includes(keyword))) return false;
           
-          // Also check name for institutional keywords
-          const institutionalKeywords = [
-            'college',
-            'university',
-            'school',
-            'academy',
-            'institute',
-            'campus',
-            'student'
-          ];
-          
-          if (institutionalKeywords.some(keyword => name.includes(keyword))) {
-            return false;
-          }
-          
-          // Only allow libraries that explicitly say "public" or are city/county/town libraries
           const publicIndicators = ['public', 'city', 'county', 'town', 'municipal', 'branch'];
-          const hasPublicIndicator = publicIndicators.some(keyword => name.includes(keyword));
-          
-          if (!hasPublicIndicator) {
-            return false;
-          }
+          if (!publicIndicators.some(keyword => name.includes(keyword))) return false;
         }
         
-        // For cafes, be strict about workspace suitability
+        // For cafes and coffee shops - be more permissive
         if (types.includes('cafe') || types.includes('coffee_shop')) {
-          // Must have dine-in capability (filters out takeout-only)
-          if (place.dineIn === false) return false;
+          // Only exclude if explicitly takeout-only
+          if (place.dineIn === false && place.takeout === true) return false;
           
-          // Exclude if it's a full restaurant/diner/fast food (but allow bakeries)
-          if (types.includes('restaurant') || 
-              types.includes('diner') || 
-              types.includes('fast_food_restaurant') ||
-              types.includes('hamburger_restaurant') ||
-              types.includes('sandwich_shop')) {
-            return false;
-          }
+          // Only exclude obvious fast food chains
+          if (types.includes('fast_food_restaurant') && !types.includes('cafe')) return false;
           
-          // Exclude places with names that suggest they're not work-friendly
-          const excludeKeywords = ['diner', 'restaurant', 'pizza', 'burger', 'grill', 'bistro', 'eatery'];
-          if (excludeKeywords.some(keyword => name.includes(keyword))) {
-            return false;
-          }
-          
-          // If it's a cafe and ONLY does takeout, skip it
-          if (place.takeout === true && place.dineIn === false) return false;
+          return true; // Accept all other cafes/coffee shops
         }
         
-        // For bakeries, allow them if they have cafe characteristics
+        // For bakeries - accept if they have seating or are cafe-style
         if (types.includes('bakery')) {
-          // Allow bakeries that also have cafe/coffee_shop type
-          if (types.includes('cafe') || types.includes('coffee_shop')) {
-            // Must have dine-in capability
-            if (place.dineIn === false) return false;
+          // Accept bakeries that allow dine-in or have cafe characteristics
+          if (place.dineIn !== false || types.includes('cafe') || types.includes('coffee_shop')) {
             return true;
           }
-          
-          // Allow bakeries with dine-in and good ratings (likely cafe-style)
-          if (place.dineIn === true && place.rating >= 4.0) {
-            return true;
-          }
-          
-          // Otherwise filter out pure bakeries without seating
-          return false;
+          return false; // Skip pure takeout bakeries
         }
         
         return true;
