@@ -37,6 +37,54 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState(0); // 0 = today, 1 = tomorrow, etc.
   const [selectedHour, setSelectedHour] = useState(12); // 12 PM default
 
+  // Helper functions - must be defined before use
+  const getDayLabel = (offset: number) => {
+    if (offset === 0) return 'Today';
+    if (offset === 1) return 'Tomorrow';
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const getTimeLabel = (hour: number) => {
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:00 ${period}`;
+  };
+
+  // Check if a location is open at a specific time
+  const isOpenAtTime = (location: Location, dayOffset: number, hour: number): boolean => {
+    if (!location.openingHours?.weekdayDescriptions) return true;
+
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + dayOffset);
+    const dayOfWeek = targetDate.getDay();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const targetDayName = dayNames[dayOfWeek];
+
+    const todayHours = location.openingHours.weekdayDescriptions.find(desc => 
+      desc.startsWith(targetDayName)
+    );
+
+    if (!todayHours || todayHours.includes('Closed')) return false;
+
+    // Parse hours (e.g., "9:00 AM – 10:00 PM")
+    const timeMatch = todayHours.match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*–\s*(\d{1,2}):(\d{2})\s*(AM|PM)/);
+    if (!timeMatch) return true; // If can't parse, assume open
+
+    const [, openHourStr, openMin, openPeriod, closeHourStr, closeMin, closePeriod] = timeMatch;
+    
+    let openHour = parseInt(openHourStr);
+    if (openPeriod === 'PM' && openHour !== 12) openHour += 12;
+    if (openPeriod === 'AM' && openHour === 12) openHour = 0;
+
+    let closeHour = parseInt(closeHourStr);
+    if (closePeriod === 'PM' && closeHour !== 12) closeHour += 12;
+    if (closePeriod === 'AM' && closeHour === 12) closeHour = 0;
+
+    return hour >= openHour && hour < closeHour;
+  };
+
   const fetchNearbyPlaces = async (lat: number, lng: number, locationType?: LocationType | 'all') => {
     setLoading(true);
     try {
@@ -101,53 +149,6 @@ const Index = () => {
   const timeFilteredLocations = timeMode === 'now' 
     ? filteredLocations 
     : filteredLocations.filter(loc => isOpenAtTime(loc, selectedDate, selectedHour));
-
-  const getDayLabel = (offset: number) => {
-    if (offset === 0) return 'Today';
-    if (offset === 1) return 'Tomorrow';
-    const date = new Date();
-    date.setDate(date.getDate() + offset);
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  };
-
-  const getTimeLabel = (hour: number) => {
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-    return `${displayHour}:00 ${period}`;
-  };
-
-  // Check if a location is open at a specific time
-  const isOpenAtTime = (location: Location, dayOffset: number, hour: number): boolean => {
-    if (!location.openingHours?.weekdayDescriptions) return true;
-
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + dayOffset);
-    const dayOfWeek = targetDate.getDay();
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const targetDayName = dayNames[dayOfWeek];
-
-    const todayHours = location.openingHours.weekdayDescriptions.find(desc => 
-      desc.startsWith(targetDayName)
-    );
-
-    if (!todayHours || todayHours.includes('Closed')) return false;
-
-    // Parse hours (e.g., "9:00 AM – 10:00 PM")
-    const timeMatch = todayHours.match(/(\d{1,2}):(\d{2})\s*(AM|PM)\s*–\s*(\d{1,2}):(\d{2})\s*(AM|PM)/);
-    if (!timeMatch) return true; // If can't parse, assume open
-
-    const [, openHourStr, openMin, openPeriod, closeHourStr, closeMin, closePeriod] = timeMatch;
-    
-    let openHour = parseInt(openHourStr);
-    if (openPeriod === 'PM' && openHour !== 12) openHour += 12;
-    if (openPeriod === 'AM' && openHour === 12) openHour = 0;
-
-    let closeHour = parseInt(closeHourStr);
-    if (closePeriod === 'PM' && closeHour !== 12) closeHour += 12;
-    if (closePeriod === 'AM' && closeHour === 12) closeHour = 0;
-
-    return hour >= openHour && hour < closeHour;
-  };
 
   useEffect(() => {
     if (userLocation) {
