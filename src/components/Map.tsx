@@ -10,6 +10,7 @@ interface MapProps {
   onMapClick?: (lat: number, lng: number) => void;
   apiKey?: string;
   onMapReady?: (map: mapboxgl.Map) => void;
+  onMapMoved?: (lat: number, lng: number) => void;
 }
 
 const getBusynessColor = (busyness: string) => {
@@ -25,7 +26,7 @@ const getBusynessColor = (busyness: string) => {
   }
 };
 
-const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClick, apiKey, onMapReady }) => {
+const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClick, apiKey, onMapReady, onMapMoved }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -63,10 +64,18 @@ const Map: React.FC<MapProps> = ({ locations, center, onLocationClick, onMapClic
           onMapReady(mapRef.current!);
         });
       }
+
+      // Add moveend event to fetch new places when user drags map
+      if (onMapMoved) {
+        mapRef.current.on('moveend', () => {
+          const center = mapRef.current!.getCenter();
+          onMapMoved(center.lat, center.lng);
+        });
+      }
     } else {
       mapRef.current.easeTo({ center: [center[1], center[0]], zoom: 12, duration: 800 });
     }
-  }, [center, apiKey, onMapClick, onMapReady]);
+  }, [center, apiKey, onMapClick, onMapReady, onMapMoved]);
 
   // Update markers when locations change
   useEffect(() => {
