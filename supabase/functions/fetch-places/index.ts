@@ -88,15 +88,15 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         includedTypes: includedTypes,
-        maxResultCount: 20,
-        rankPreference: 'POPULARITY', // Prioritize popular places
+        maxResultCount: 20, // Google API max is 20 per request
+        rankPreference: 'DISTANCE', // Get closest places first for better coverage
         locationRestriction: {
           circle: {
             center: {
               latitude: lat,
               longitude: lng
             },
-            radius: 2000.0 // 2km radius
+            radius: 5000.0 // 5km radius for wider coverage
           }
         }
       })
