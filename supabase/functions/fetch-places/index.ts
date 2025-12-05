@@ -133,16 +133,36 @@ serve(async (req) => {
     // Transform results to our Location format
     const locations = results
       .filter((place: any) => {
-        // Filter criteria to ensure workspace-friendly venues
+        // Filter criteria to ensure workspace-friendly venues with adequate seating
         
         // Must have opening hours info (but don't filter by current open status)
         if (!place.currentOpeningHours?.weekdayDescriptions) return false;
         
-        // Relax rating requirements - only exclude very low rated or unrated places
-        if (!place.rating || place.rating < 3.0) return false;
+        // Require decent rating - excludes poorly reviewed places
+        if (!place.rating || place.rating < 3.5) return false;
+        
+        // Require minimum number of reviews - helps filter tiny/obscure places
+        if (!place.userRatingCount || place.userRatingCount < 20) return false;
         
         const types = place.types || [];
         const name = (place.displayName?.text || '').toLowerCase();
+        
+        // === EXCLUSION RULES ===
+        
+        // Exclude fast food and chain restaurants
+        const fastFoodTypes = ['fast_food_restaurant', 'hamburger_restaurant', 'pizza_restaurant', 'sandwich_shop'];
+        if (types.some((t: string) => fastFoodTypes.includes(t))) return false;
+        
+        // Exclude by name - fast food chains and diners
+        const excludedNameKeywords = [
+          'mcdonald', 'burger king', 'wendy', 'subway', 'taco bell', 'kfc', 'popeye',
+          'chipotle', 'five guys', 'shake shack', 'chick-fil-a', 'dunkin',
+          'diner', 'bagel', 'pizza', 'donut', 'doughnut'
+        ];
+        if (excludedNameKeywords.some(keyword => name.includes(keyword))) return false;
+        
+        // Exclude if explicitly no dine-in (takeout/delivery only)
+        if (place.dineIn === false) return false;
         
         // For libraries, ensure they are PUBLIC libraries only
         if (types.includes('library')) {
@@ -156,24 +176,19 @@ serve(async (req) => {
           if (!publicIndicators.some(keyword => name.includes(keyword))) return false;
         }
         
-        // For cafes and coffee shops - be more permissive
+        // For cafes and coffee shops
         if (types.includes('cafe') || types.includes('coffee_shop')) {
-          // Only exclude if explicitly takeout-only
-          if (place.dineIn === false && place.takeout === true) return false;
-          
-          // Only exclude obvious fast food chains
-          if (types.includes('fast_food_restaurant') && !types.includes('cafe')) return false;
-          
-          return true; // Accept all other cafes/coffee shops
+          // Prefer places with higher review counts (indicates more seating/traffic)
+          // Very small places typically have fewer reviews
+          return true;
         }
         
-        // For bakeries - accept if they have seating or are cafe-style
+        // For bakeries - only accept if they have cafe characteristics AND good reviews
         if (types.includes('bakery')) {
-          // Accept bakeries that allow dine-in or have cafe characteristics
-          if (place.dineIn !== false || types.includes('cafe') || types.includes('coffee_shop')) {
-            return true;
-          }
-          return false; // Skip pure takeout bakeries
+          // Must have cafe/coffee shop type OR explicitly allow dine-in with high rating
+          if (types.includes('cafe') || types.includes('coffee_shop')) return true;
+          if (place.dineIn === true && place.rating >= 4.0) return true;
+          return false;
         }
         
         return true;
